@@ -39,8 +39,23 @@ jobs:
         with:
           channel: stable
 
+      
       - name: Preparar Android
         working-directory: ${{ steps.localizar.outputs.dir }}
+        run: |
+          flutter create --platforms=android .
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("android/app/src/main/AndroidManifest.xml")
+          s = p.read_text()
+          if 'android:name="flutterEmbedding"' not in s:
+              s = s.replace(
+                  "</application>",
+                  '        <meta-data android:name="flutterEmbedding" android:value="2" />\n    </application>'
+              )
+          p.write_text(s)
+          PY
+      
         run: flutter create --platforms=android .
 
       - name: Instalar dependências
