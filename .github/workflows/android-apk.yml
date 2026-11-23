@@ -20,7 +20,19 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y unzip
+          mkdir -p projeto
           unzip -q AuroraNime.zip -d projeto
+
+      - name: Localizar projeto Flutter
+        id: localizar
+        run: |
+          PROJECT_DIR=$(find projeto -name pubspec.yaml -print -quit | xargs dirname)
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "Não encontrei pubspec.yaml no ZIP"
+            find projeto -maxdepth 4 -type f | head -100
+            exit 1
+          fi
+          echo "dir=$PROJECT_DIR" >> "$GITHUB_OUTPUT"
 
       - name: Configurar Flutter
         uses: subosito/flutter-action@v2
@@ -28,20 +40,19 @@ jobs:
           channel: stable
 
       - name: Preparar Android
-        working-directory: projeto/Aurora_Nime_Flutter
+        working-directory: ${{ steps.localizar.outputs.dir }}
         run: flutter create --platforms=android .
 
       - name: Instalar dependências
-        working-directory: projeto/Aurora_Nime_Flutter
+        working-directory: ${{ steps.localizar.outputs.dir }}
         run: flutter pub get
 
       - name: Compilar APK
-        working-directory: projeto/Aurora_Nime_Flutter
+        working-directory: ${{ steps.localizar.outputs.dir }}
         run: flutter build apk --release
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
           name: Aurora-Nime-APK
-          path: projeto/Aurora_Nime_Flutter/build/app/outputs/flutter-apk/app-release.apk
-          
+          path: ${{ steps.localizar.outputs.dir }}/build/app/outputs/flutter-apk/app-release.apk
